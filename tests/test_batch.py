@@ -900,7 +900,7 @@ class TestBatchReport:
 
             result = batch_improve(
                 tmpdir, "nature", export_format="svg",
-                options={"report": True},
+                options={"report": True, "open_report": False},
             )
             assert result["status"] == "success"
             report_path = result["data"].get("report_path")
@@ -920,7 +920,7 @@ class TestBatchReport:
 
             result = batch_improve(
                 tmpdir, "nature", export_format="svg",
-                options={"report": True},
+                options={"report": True, "open_report": False},
             )
             report_path = result["data"]["report_path"]
             with open(report_path, "r") as f:

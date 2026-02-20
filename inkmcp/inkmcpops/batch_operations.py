@@ -396,6 +396,16 @@ def batch_improve(
                 color_map=opts.get("color_map"),
             )
             response_data["report_path"] = report_path
+            # Auto-open in browser
+            if opts.get("open_report", True):
+                try:
+                    subprocess.Popen(
+                        ["xdg-open", report_path],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except OSError:
+                    pass  # xdg-open not available
         except Exception as e:
             errors.append(f"Report generation failed: {e}")
 
@@ -750,6 +760,7 @@ def handle_batch_action(attributes: Dict[str, Any]) -> Dict[str, Any]:
         ("auto_color", True),
         ("incremental", True),
         ("report", True),
+        ("open_report", True),
     ]:
         if key in attributes:
             val = str(attributes[key]).lower()

@@ -345,6 +345,5 @@ python3 ~/proyectos/inkmcp/inkscape_exec.py 'print("hello from inkscape")'
 - [x] Templates custom — save/delete/capture templates de usuario en `user_templates.json`
 - [x] Deep matplotlib cleanup — spine removal (Tufte), grid restyling, data recoloring automático
 
-### Pendientes
-- [ ] Integración con el skill `/inkscape` para usar templates + batch automáticamente
-- [ ] Abrir report en browser automáticamente (`xdg-open batch_report.html`)
+- [x] Auto-open report — `xdg-open` al generar HTML report (desactivable con `open_report=false`)
+- [x] Integración skill `/inkscape` — subcomandos `batch`, `template`, `palette` usan templates + batch automáticamente
