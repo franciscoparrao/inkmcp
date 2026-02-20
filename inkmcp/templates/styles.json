@@ -1,0 +1,147 @@
+{
+  "nature": {
+    "name": "Nature",
+    "description": "Nature journal style - clean, minimal, professional",
+    "fonts": {
+      "title": {"family": "Helvetica,Arial,sans-serif", "size": "14", "weight": "bold", "color": "#000000"},
+      "axis_label": {"family": "Helvetica,Arial,sans-serif", "size": "11", "weight": "normal", "color": "#000000"},
+      "tick_label": {"family": "Helvetica,Arial,sans-serif", "size": "9", "weight": "normal", "color": "#333333"},
+      "legend": {"family": "Helvetica,Arial,sans-serif", "size": "9", "weight": "normal", "color": "#333333"},
+      "annotation": {"family": "Helvetica,Arial,sans-serif", "size": "10", "weight": "normal", "color": "#000000"}
+    },
+    "colors": {
+      "palette": ["#2171b5", "#e6550d", "#31a354", "#756bb1", "#636363", "#e7298a"],
+      "background": "none",
+      "grid": "#e0e0e0",
+      "axis": "#000000",
+      "text": "#000000"
+    },
+    "axes": {
+      "line_width": "0.75",
+      "tick_width": "0.5",
+      "grid_width": "0.3",
+      "grid_style": "solid",
+      "spines": ["bottom", "left"]
+    },
+    "bars": {
+      "opacity": "0.9",
+      "stroke_width": "0"
+    }
+  },
+  "science": {
+    "name": "Science",
+    "description": "Science/AAAS journal style - bold colors, clear hierarchy",
+    "fonts": {
+      "title": {"family": "Arial,Helvetica,sans-serif", "size": "14", "weight": "bold", "color": "#000000"},
+      "axis_label": {"family": "Arial,Helvetica,sans-serif", "size": "12", "weight": "bold", "color": "#000000"},
+      "tick_label": {"family": "Arial,Helvetica,sans-serif", "size": "10", "weight": "normal", "color": "#000000"},
+      "legend": {"family": "Arial,Helvetica,sans-serif", "size": "10", "weight": "normal", "color": "#000000"},
+      "annotation": {"family": "Arial,Helvetica,sans-serif", "size": "10", "weight": "bold", "color": "#000000"}
+    },
+    "colors": {
+      "palette": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
+      "background": "none",
+      "grid": "#cccccc",
+      "axis": "#000000",
+      "text": "#000000"
+    },
+    "axes": {
+      "line_width": "1.0",
+      "tick_width": "0.75",
+      "grid_width": "0.4",
+      "grid_style": "dashed",
+      "spines": ["bottom", "left"]
+    },
+    "bars": {
+      "opacity": "0.85",
+      "stroke_width": "0.5"
+    }
+  },
+  "elsevier": {
+    "name": "Elsevier",
+    "description": "Elsevier journal style - traditional, serif-friendly",
+    "fonts": {
+      "title": {"family": "Times New Roman,Times,serif", "size": "14", "weight": "bold", "color": "#000000"},
+      "axis_label": {"family": "Times New Roman,Times,serif", "size": "12", "weight": "normal", "color": "#000000"},
+      "tick_label": {"family": "Times New Roman,Times,serif", "size": "10", "weight": "normal", "color": "#333333"},
+      "legend": {"family": "Times New Roman,Times,serif", "size": "10", "weight": "normal", "color": "#000000"},
+      "annotation": {"family": "Times New Roman,Times,serif", "size": "10", "weight": "normal", "color": "#000000"}
+    },
+    "colors": {
+      "palette": ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#F0E442", "#56B4E9"],
+      "background": "none",
+      "grid": "#d9d9d9",
+      "axis": "#000000",
+      "text": "#000000"
+    },
+    "axes": {
+      "line_width": "0.75",
+      "tick_width": "0.5",
+      "grid_width": "0.25",
+      "grid_style": "dotted",
+      "spines": ["bottom", "left", "top", "right"]
+    },
+    "bars": {
+      "opacity": "0.9",
+      "stroke_width": "0.3"
+    }
+  },
+  "ieee": {
+    "name": "IEEE",
+    "description": "IEEE style - grayscale-safe, compact",
+    "fonts": {
+      "title": {"family": "Times New Roman,Times,serif", "size": "12", "weight": "bold", "color": "#000000"},
+      "axis_label": {"family": "Times New Roman,Times,serif", "size": "10", "weight": "normal", "color": "#000000"},
+      "tick_label": {"family": "Times New Roman,Times,serif", "size": "8", "weight": "normal", "color": "#000000"},
+      "legend": {"family": "Times New Roman,Times,serif", "size": "8", "weight": "normal", "color": "#000000"},
+      "annotation": {"family": "Times New Roman,Times,serif", "size": "9", "weight": "normal", "color": "#000000"}
+    },
+    "colors": {
+      "palette": ["#000000", "#666666", "#999999", "#cccccc", "#333333", "#b3b3b3"],
+      "background": "none",
+      "grid": "#e0e0e0",
+      "axis": "#000000",
+      "text": "#000000"
+    },
+    "axes": {
+      "line_width": "0.75",
+      "tick_width": "0.5",
+      "grid_width": "0.25",
+      "grid_style": "dotted",
+      "spines": ["bottom", "left", "top", "right"]
+    },
+    "bars": {
+      "opacity": "1.0",
+      "stroke_width": "0.5"
+    }
+  },
+  "colorblind_safe": {
+    "name": "Colorblind Safe",
+    "description": "Optimized for colorblind readers (Wong 2011 palette)",
+    "fonts": {
+      "title": {"family": "Helvetica,Arial,sans-serif", "size": "14", "weight": "bold", "color": "#000000"},
+      "axis_label": {"family": "Helvetica,Arial,sans-serif", "size": "11", "weight": "normal", "color": "#000000"},
+      "tick_label": {"family": "Helvetica,Arial,sans-serif", "size": "9", "weight": "normal", "color": "#333333"},
+      "legend": {"family": "Helvetica,Arial,sans-serif", "size": "9", "weight": "normal", "color": "#333333"},
+      "annotation": {"family": "Helvetica,Arial,sans-serif", "size": "10", "weight": "normal", "color": "#000000"}
+    },
+    "colors": {
+      "palette": ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000"],
+      "background": "none",
+      "grid": "#e0e0e0",
+      "axis": "#000000",
+      "text": "#000000"
+    },
+    "axes": {
+      "line_width": "0.75",
+      "tick_width": "0.5",
+      "grid_width": "0.3",
+      "grid_style": "solid",
+      "spines": ["bottom", "left"]
+    },
+    "bars": {
+      "opacity": "0.9",
+      "stroke_width": "0.5"
+    }
+  }
+}

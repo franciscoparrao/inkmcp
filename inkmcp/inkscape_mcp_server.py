@@ -190,6 +190,47 @@ def format_response(result: Dict[str, Any]) -> str:
         if "tag" in data:
             details.append(f"**Type**: {data['tag']}")
 
+        # Document info details (get-info)
+        if "dimensions" in data:
+            dims = data["dimensions"]
+            details.append(f"**Dimensions**: {dims.get('width', '?')} x {dims.get('height', '?')}")
+        if "viewBox" in data:
+            vb = data["viewBox"]
+            if isinstance(vb, list):
+                details.append(f"**viewBox**: {' '.join(str(v) for v in vb)}")
+            else:
+                details.append(f"**viewBox**: {vb}")
+        if "elementCounts" in data:
+            counts = data["elementCounts"]
+            total = sum(counts.values())
+            details.append(f"**Elements**: {total} total")
+            # Show counts sorted by frequency
+            for tag, count in sorted(counts.items(), key=lambda x: -x[1]):
+                details.append(f"  {tag}: {count}")
+
+        # Element info details (get-info-by-id)
+        if "label" in data and data["label"]:
+            details.append(f"**Label**: {data['label']}")
+        if "attributes" in data and isinstance(data["attributes"], dict):
+            details.append("**Attributes**:")
+            for attr, val in data["attributes"].items():
+                details.append(f"  {attr}: {val}")
+        if "style" in data and isinstance(data["style"], dict):
+            details.append("**Style**:")
+            for prop, val in data["style"].items():
+                details.append(f"  {prop}: {val}")
+
+        # Template details (list-templates / get-template)
+        if "templates" in data and isinstance(data["templates"], list):
+            for tmpl in data["templates"]:
+                palette_str = " ".join(tmpl.get("palette", [])[:4])
+                details.append(f"  **{tmpl['id']}** - {tmpl.get('description', '')} [{palette_str}]")
+        if "palette" in data and isinstance(data["palette"], list):
+            details.append(f"**Palette**: {' '.join(data['palette'])}")
+        if "code" in data and "template_name" in data:
+            details.append(f"**Template**: {data['template_name']}")
+            details.append(f"**Code length**: {len(data['code'])} chars")
+
         # Selection/info details
         if "count" in data:
             details.append(f"**Count**: {data['count']}")
@@ -215,53 +256,121 @@ def format_response(result: Dict[str, Any]) -> str:
         # Code execution details
         if "execution_successful" in data:
             if data["execution_successful"]:
-                details.append("**Execution**: ✅ Success")
+                details.append("**Execution**: Success")
             else:
-                details.append("**Execution**: ❌ Failed")
+                details.append("**Execution**: Failed")
+        if "output" in data and data["output"]:
+            details.append(f"**Output**:\n```\n{data['output'].rstrip()}\n```")
+        if "errors" in data and data["errors"]:
+            details.append(f"**Errors**:\n```\n{data['errors'].rstrip()}\n```")
+        if "return_value" in data and data["return_value"] is not None:
+            details.append(f"**Return value**: {data['return_value']}")
         if "elements_created" in data and data["elements_created"]:
             details.append(f"**Created**: {len(data['elements_created'])} elements")
+        if "local_variables" in data and data["local_variables"]:
+            lv = data["local_variables"]
+            details.append(f"**Variables**: {', '.join(lv.keys())}")
 
-        # ID mapping (requested → actual)
+        # ID mapping (requested -> actual)
         if "id_mapping" in data and data["id_mapping"]:
-            details.append("**Element IDs** (requested → actual):")
+            details.append("**Element IDs** (requested -> actual):")
             for requested_id, actual_id in data["id_mapping"].items():
                 if requested_id == actual_id:
-                    details.append(f"  {requested_id} ✓")
+                    details.append(f"  {requested_id}")
                 else:
                     details.append(
-                        f"  {requested_id} → {actual_id} (collision resolved)"
+                        f"  {requested_id} -> {actual_id} (collision resolved)"
                     )
+
+        # Batch processing details
+        if "files_processed" in data:
+            details.append(f"**Files processed**: {data['files_processed']}")
+            if data.get("files_failed"):
+                details.append(f"**Files failed**: {data['files_failed']}")
+            if data.get("files_skipped"):
+                details.append(f"**Files skipped** (unchanged): {data['files_skipped']}")
+        if "batch_template" in data:
+            details.append(f"**Template**: {data['batch_template']}")
+        if "output_dir" in data:
+            details.append(f"**Output directory**: {data['output_dir']}")
+        if "auto_color_map" in data:
+            details.append("**Auto color mapping**:")
+            for src, dst in data["auto_color_map"].items():
+                details.append(f"  {src} -> {dst}")
+        if "report_path" in data:
+            details.append(f"**Report**: {data['report_path']}")
+
+        # Watch mode details
+        if "watch_duration" in data:
+            details.append(f"**Watch duration**: {data['watch_duration']}s ({data.get('watch_cycles', 0)} cycles)")
+
+        if "file_results" in data and isinstance(data["file_results"], list):
+            details.append("")
+            for fr in data["file_results"]:
+                if fr.get("status") == "ok":
+                    mpl = " (matplotlib detected)" if fr.get("matplotlib_detected") else ""
+                    details.append(
+                        f"  {fr['input']} -> {fr['output']}{mpl}, {fr.get('modifications', 0)} modifications"
+                    )
+                else:
+                    details.append(f"  {fr['input']} -> ERROR: {fr.get('error', '?')}")
+
+        # Analysis (dry-run) details
+        if "files_analyzed" in data:
+            details.append(f"**Files analyzed**: {data['files_analyzed']}")
+            if data.get("matplotlib_count"):
+                details.append(f"**Matplotlib detected**: {data['matplotlib_count']} files")
+        if "analysis_template" in data:
+            details.append(f"**Template for mapping**: {data['analysis_template']}")
+        if "aggregate_data_colors" in data and data["aggregate_data_colors"]:
+            details.append("**Data colors found** (across all files):")
+            for color, count in data["aggregate_data_colors"][:10]:
+                details.append(f"  {color} ({count} occurrences)")
+            if len(data["aggregate_data_colors"]) > 10:
+                details.append(f"  ... and {len(data['aggregate_data_colors']) - 10} more")
+        if "aggregate_suggested_mapping" in data and data["aggregate_suggested_mapping"]:
+            details.append("**Suggested color mapping**:")
+            for src, dst in data["aggregate_suggested_mapping"].items():
+                details.append(f"  {src} -> {dst}")
+        if "file_analyses" in data and isinstance(data["file_analyses"], list):
+            details.append("")
+            for fa in data["file_analyses"]:
+                if fa.get("status") == "analyzed":
+                    mpl = " [matplotlib]" if fa.get("matplotlib_detected") else ""
+                    n_colors = fa.get("color_analysis", {}).get("total_unique_colors", 0)
+                    n_data = len(fa.get("color_analysis", {}).get("data_colors", []))
+                    details.append(
+                        f"  {fa['file']}: {fa['total_elements']} elements, "
+                        f"{n_colors} colors ({n_data} data){mpl}"
+                    )
+                else:
+                    details.append(f"  {fa['file']}: ERROR: {fa.get('error', '?')}")
 
         # Warning for missing IDs
         if "generated_ids" in data and data["generated_ids"]:
-            details.append("⚠️  **WARNING: Elements created without IDs**")
+            details.append("WARNING: Elements created without IDs")
             details.append(
                 "For better scene management, always specify 'id' for elements:"
             )
             for gen_id in data["generated_ids"]:
-                # Extract element type from generated ID (e.g., "circle2863" → "circle")
                 elem_type = "".join(c for c in gen_id if c.isalpha())
                 details.append(f"  {gen_id} (use: {elem_type} id=my_name ...)")
-            details.append(
-                "This enables later modification with execute-code commands."
-            )
 
-        # Build final response with appropriate emoji
-        # Check if this is a failed code execution
+        # Build final response
         is_code_failure = (
             "execution_successful" in data and not data["execution_successful"]
         )
 
-        emoji = "❌" if is_code_failure else "✅"
+        status = "FAILED" if is_code_failure else "OK"
 
         if details:
-            return f"{emoji} {message}\n\n" + "\n".join(details)
+            return f"[{status}] {message}\n\n" + "\n".join(details)
         else:
-            return f"{emoji} {message}"
+            return f"[{status}] {message}"
 
     else:
         error = result.get("data", {}).get("error", "Unknown error")
-        return f"❌ {error}"
+        return f"[ERROR] {error}"
 
 
 @mcp.tool()
@@ -327,7 +436,45 @@ def inkscape_operation(ctx: Context, command: str) -> Union[str, ImageContent]:
     ═══ INFO & EXPORT OPERATIONS ═══
     "get-selection" - Get info about selected objects
     "get-info" - Get document information
-    "export-document-image format=png return_base64=true" - Screenshot
+    "get-info-by-id id=element_id" - Get info about a specific element
+    "export-document-image format=png return_base64=true" - Screenshot as base64 image
+    "export-document-image format=pdf output_path=/tmp/output.pdf" - Export as PDF
+    "export-document-image format=pdf output_path=/tmp/out.pdf area=drawing" - Export drawing area as PDF
+    Supported export formats: png, pdf, eps, ps
+
+    ═══ FILE OPERATIONS ═══
+    "open-file path=/path/to/file.svg" - Open SVG/PDF file in Inkscape
+    "open-file path=/path/to/figure.pdf" - Open PDF for editing
+
+    ═══ PUBLICATION TEMPLATES ═══
+    "list-templates" - List available publication style templates
+    "get-template name=nature" - Get detailed info about a template
+    "apply-template name=nature" - Apply Nature journal style to current document
+    "apply-template name=science" - Apply Science/AAAS style
+    "apply-template name=elsevier" - Apply Elsevier style
+    "apply-template name=ieee" - Apply IEEE style (grayscale-safe)
+    "apply-template name=colorblind_safe" - Apply colorblind-safe palette (Wong 2011)
+    Options: apply_fonts=true/false apply_colors=true/false
+
+    ═══ BATCH PROCESSING ═══
+    Process multiple SVG/PDF files with a template (no Inkscape GUI needed):
+    "batch-improve path=/dir/with/figures/ template=nature format=pdf" - Process all SVG/PDF files
+    "batch-improve path=/dir/ template=science output=/dir/improved/" - Custom output directory
+    "batch-improve path=fig1.pdf,fig2.pdf template=colorblind_safe" - Specific files
+    "batch-improve path=/dir/ template=nature auto_color=true" - Auto-detect and map colors to palette
+    "batch-improve path=/dir/ template=nature incremental=true" - Skip unchanged files
+    "batch-improve path=/dir/ template=nature report=true format=svg" - Generate HTML before/after report
+    Options: format=pdf/svg/png, cleanup_matplotlib=true/false (auto-detected), auto_color, incremental, report
+
+    ═══ BATCH ANALYSIS (dry-run) ═══
+    Analyze files without modifying them — shows element counts, colors, matplotlib detection:
+    "batch-analyze path=/dir/with/figures/" - Basic analysis
+    "batch-analyze path=/dir/ template=nature" - Analysis with suggested color mapping to palette
+
+    ═══ BATCH WATCH ═══
+    Monitor directory and re-process changed files:
+    "batch-watch path=/dir/ template=nature format=pdf" - Watch with defaults (5s interval, 300s duration)
+    "batch-watch path=/dir/ template=nature interval=10 duration=600" - Custom timing
 
     ═══ GRADIENTS ═══
     Use gradientUnits=userSpaceOnUse with absolute coordinates matching your shape:
@@ -362,18 +509,75 @@ def inkscape_operation(ctx: Context, command: str) -> Union[str, ImageContent]:
     """
     response_file = None
     try:
+        # Parse the command string using the same logic as our client
+        from inkmcpcli import parse_command_string
+
+        parsed_data = parse_command_string(command)
+        tag = parsed_data.get("tag", "")
+
+        # Handle commands that don't need D-Bus / Inkscape GUI
+        if tag == "batch-improve":
+            from inkmcpops.batch_operations import handle_batch_action
+            result = handle_batch_action(parsed_data.get("attributes", {}))
+            return format_response(result)
+
+        if tag == "batch-analyze":
+            from inkmcpops.batch_operations import handle_analyze_action
+            result = handle_analyze_action(parsed_data.get("attributes", {}))
+            return format_response(result)
+
+        if tag == "batch-watch":
+            from inkmcpops.batch_operations import handle_watch_action
+            result = handle_watch_action(parsed_data.get("attributes", {}))
+            return format_response(result)
+
+        if tag in ("list-templates", "get-template"):
+            from inkmcpops.template_operations import handle_template_action
+            result = handle_template_action(tag, parsed_data.get("attributes", {}))
+            return format_response(result)
+
+        # Commands below require Inkscape D-Bus connection
         connection = get_inkscape_connection()
+
+        if tag == "apply-template":
+            from inkmcpops.template_operations import handle_template_action
+            gen_result = handle_template_action(tag, parsed_data.get("attributes", {}))
+            if gen_result.get("status") != "success":
+                return format_response(gen_result)
+            # Execute the generated code in Inkscape
+            code = gen_result["data"]["code"]
+            parsed_data = {
+                "tag": "execute-code",
+                "attributes": {"code": code},
+            }
+            # Fall through to normal execution below
+
+        # Handle open-file directly via D-Bus (no extension needed)
+        if parsed_data.get("tag") == "open-file":
+            file_path = parsed_data.get("attributes", {}).get("path", "")
+            if not file_path:
+                return "[ERROR] open-file requires path parameter. Usage: open-file path=/path/to/file.svg"
+            file_path = os.path.expanduser(file_path)
+            if not os.path.exists(file_path):
+                return f"[ERROR] File not found: {file_path}"
+            uri = f"file://{os.path.abspath(file_path)}"
+            cmd = [
+                "gdbus", "call", "--session",
+                "--dest", connection.dbus_service,
+                "--object-path", connection.dbus_path,
+                "--method", "org.gtk.Application.Open",
+                f"['{uri}']", "", "{}",
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                return f"[ERROR] Failed to open file: {result.stderr}"
+            return f"[OK] Opened {file_path} in Inkscape"
 
         # Create unique response file for this operation
         response_fd, response_file = tempfile.mkstemp(
             suffix=".json", prefix="mcp_response_"
         )
         os.close(response_fd)
-
-        # Parse the command string using the same logic as our client
-        from inkmcpcli import parse_command_string
-
-        parsed_data = parse_command_string(command)
 
         # Add response file to the operation data
         parsed_data["response_file"] = response_file
