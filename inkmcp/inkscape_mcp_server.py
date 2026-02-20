@@ -224,12 +224,21 @@ def format_response(result: Dict[str, Any]) -> str:
         if "templates" in data and isinstance(data["templates"], list):
             for tmpl in data["templates"]:
                 palette_str = " ".join(tmpl.get("palette", [])[:4])
-                details.append(f"  **{tmpl['id']}** - {tmpl.get('description', '')} [{palette_str}]")
+                custom_tag = " [custom]" if tmpl.get("custom") else ""
+                details.append(f"  **{tmpl['id']}**{custom_tag} - {tmpl.get('description', '')} [{palette_str}]")
         if "palette" in data and isinstance(data["palette"], list):
             details.append(f"**Palette**: {' '.join(data['palette'])}")
         if "code" in data and "template_name" in data:
             details.append(f"**Template**: {data['template_name']}")
             details.append(f"**Code length**: {len(data['code'])} chars")
+
+        # Custom template save/delete details
+        if "saved_to" in data:
+            details.append(f"**Saved to**: {data['saved_to']}")
+        if "template_data" in data and isinstance(data["template_data"], dict):
+            td = data["template_data"]
+            if td.get("colors", {}).get("palette"):
+                details.append(f"**Captured palette**: {' '.join(td['colors']['palette'][:6])}")
 
         # Selection/info details
         if "count" in data:
@@ -447,7 +456,7 @@ def inkscape_operation(ctx: Context, command: str) -> Union[str, ImageContent]:
     "open-file path=/path/to/figure.pdf" - Open PDF for editing
 
     ═══ PUBLICATION TEMPLATES ═══
-    "list-templates" - List available publication style templates
+    "list-templates" - List available publication style templates (built-in + custom)
     "get-template name=nature" - Get detailed info about a template
     "apply-template name=nature" - Apply Nature journal style to current document
     "apply-template name=science" - Apply Science/AAAS style
@@ -455,6 +464,12 @@ def inkscape_operation(ctx: Context, command: str) -> Union[str, ImageContent]:
     "apply-template name=ieee" - Apply IEEE style (grayscale-safe)
     "apply-template name=colorblind_safe" - Apply colorblind-safe palette (Wong 2011)
     Options: apply_fonts=true/false apply_colors=true/false
+
+    ═══ CUSTOM TEMPLATES ═══
+    "save-template name=my_style palette=#e6550d,#2171b5,#31a354 description='My custom style'" - Save custom template with palette
+    "save-template name=my_style fonts={...} colors={...} axes={...}" - Save with full JSON config
+    "save-template name=nature force=true palette=#ff0000,#0000ff" - Override built-in (requires force)
+    "delete-template name=my_style" - Delete a custom template (cannot delete built-in)
 
     ═══ BATCH PROCESSING ═══
     Process multiple SVG/PDF files with a template (no Inkscape GUI needed):
@@ -531,7 +546,7 @@ def inkscape_operation(ctx: Context, command: str) -> Union[str, ImageContent]:
             result = handle_watch_action(parsed_data.get("attributes", {}))
             return format_response(result)
 
-        if tag in ("list-templates", "get-template"):
+        if tag in ("list-templates", "get-template", "save-template", "delete-template"):
             from inkmcpops.template_operations import handle_template_action
             result = handle_template_action(tag, parsed_data.get("attributes", {}))
             return format_response(result)

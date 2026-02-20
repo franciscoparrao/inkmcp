@@ -343,7 +343,8 @@ def batch_improve(
     for filepath in files:
         try:
             result = process_single_file(
-                filepath, output_dir, template_code, export_format, cleanup_mpl
+                filepath, output_dir, template_code, export_format,
+                cleanup_mpl, template_data=template_data,
             )
             file_results.append(result)
             # Update manifest
@@ -407,6 +408,7 @@ def process_single_file(
     template_code: str,
     export_format: str = "pdf",
     cleanup_matplotlib: Optional[bool] = None,
+    template_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Process a single SVG or PDF file with template code.
 
@@ -416,6 +418,7 @@ def process_single_file(
         template_code: Python code string from generate_apply_code().
         export_format: Output format ('pdf', 'svg', 'png').
         cleanup_matplotlib: Force matplotlib cleanup. None = auto-detect.
+        template_data: Optional template dict for deep matplotlib cleanup.
 
     Returns:
         Dict with processing results for this file.
@@ -450,7 +453,7 @@ def process_single_file(
             cleanup_matplotlib is None and is_matplotlib_svg(root)
         ):
             matplotlib_detected = True
-            modifications += cleanup_matplotlib_svg(root)
+            modifications += cleanup_matplotlib_svg(root, template_data=template_data)
 
         # Apply template code
         exec_globals = {

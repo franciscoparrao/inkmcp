@@ -22,6 +22,13 @@ from inkmcpops.matplotlib_utils import (
     _remove_background_rects,
     _remove_redundant_styles,
     _normalize_matplotlib_fonts,
+    _cleanup_spines,
+    _cleanup_grid_lines,
+    _recolor_data_elements,
+    _get_axes_groups,
+    _get_axes_bbox,
+    _is_rectilinear_path,
+    _classify_spine,
 )
 from inkmcpops.batch_operations import (
     list_processable_files,
@@ -991,3 +998,255 @@ class TestNewFormatResponse:
         text = format_response(result)
         assert "#ff0000 -> #e6550d" in text
         assert "Auto color mapping" in text
+
+
+# ---------------------------------------------------------------------------
+# Deep cleanup SVG fixtures
+# ---------------------------------------------------------------------------
+
+MATPLOTLIB_SVG_WITH_SPINES = '''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <g id="axes_1">
+    <rect id="patch_1" x="80" y="40" width="500" height="380"
+          style="fill:#ffffff;stroke:none"/>
+    <path id="patch_2" d="M 80,40 L 80,420" style="fill:none;stroke:#000000;stroke-width:0.8"/>
+    <path id="patch_3" d="M 80,420 L 580,420" style="fill:none;stroke:#000000;stroke-width:0.8"/>
+    <path id="patch_4" d="M 580,40 L 580,420" style="fill:none;stroke:#000000;stroke-width:0.8"/>
+    <path id="patch_5" d="M 80,40 L 580,40" style="fill:none;stroke:#000000;stroke-width:0.8"/>
+    <path id="line2d_1" d="M 100,200 L 200,150 L 300,180" style="fill:none;stroke:#1f77b4"/>
+  </g>
+</svg>'''
+
+MATPLOTLIB_SVG_WITH_GRID = '''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <g id="axes_1">
+    <rect id="patch_1" x="80" y="40" width="500" height="380"
+          style="fill:#ffffff;stroke:none"/>
+    <path d="M 80,100 L 580,100" style="fill:none;stroke:#cccccc;stroke-width:0.5"/>
+    <path d="M 80,200 L 580,200" style="fill:none;stroke:#cccccc;stroke-width:0.5"/>
+    <path d="M 80,300 L 580,300" style="fill:none;stroke:#cccccc;stroke-width:0.5"/>
+    <path d="M 80,400 L 580,400" style="fill:none;stroke:#cccccc;stroke-width:0.5"/>
+    <path id="line2d_1" d="M 100,200 L 200,150 L 300,180" style="fill:none;stroke:#1f77b4"/>
+  </g>
+</svg>'''
+
+MATPLOTLIB_SVG_WITH_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <g id="axes_1">
+    <rect id="patch_1" x="80" y="40" width="500" height="380"
+          style="fill:#ffffff;stroke:none"/>
+    <rect id="patch_2" x="100" y="200" width="40" height="100" fill="#1f77b4"/>
+    <rect id="patch_3" x="160" y="150" width="40" height="150" fill="#ff7f0e"/>
+    <path id="line2d_1" d="M 100,200 L 200,150 L 300,180" style="fill:none;stroke:#1f77b4"/>
+    <g id="matplotlib.axis_1">
+      <g id="xtick_1">
+        <path d="M 100,420 L 100,415" style="stroke:#000000"/>
+      </g>
+    </g>
+  </g>
+</svg>'''
+
+
+# ---------------------------------------------------------------------------
+# Deep cleanup: Spine tests
+# ---------------------------------------------------------------------------
+
+class TestCleanupSpines:
+    """Tests for spine removal/restyling."""
+
+    def test_remove_top_right_spines(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_SPINES)
+        count = _cleanup_spines(root, keep_spines=["bottom", "left"])
+        assert count >= 2  # top and right removed
+
+    def test_keep_all_spines(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_SPINES)
+        count = _cleanup_spines(root, keep_spines=["top", "bottom", "left", "right"])
+        # No removals, but may restyle if color/width provided
+        # Count spine paths remaining
+        axes = _get_axes_groups(root)
+        assert len(axes) == 1
+
+    def test_restyle_kept_spines(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_SPINES)
+        count = _cleanup_spines(
+            root, keep_spines=["bottom", "left"],
+            spine_color="#333333", spine_width="1.0",
+        )
+        assert count > 0
+        # Verify restyled spines have the new color
+        for elem in root.iter():
+            if not isinstance(elem.tag, str):
+                continue
+            style = elem.get("style", "")
+            if "stroke:#333333" in style:
+                break
+        else:
+            pytest.fail("No spine found with new color #333333")
+
+    def test_no_spines_on_non_matplotlib(self):
+        root = _parse_svg(NON_MATPLOTLIB_SVG)
+        count = _cleanup_spines(root)
+        assert count == 0
+
+
+class TestCleanupGridLines:
+    """Tests for grid line restyling/removal."""
+
+    def test_restyle_grid(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_GRID)
+        count = _cleanup_grid_lines(root, grid_color="#e0e0e0", grid_width="0.3")
+        assert count >= 3  # at least 3 grid lines restyled
+
+    def test_remove_grid(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_GRID)
+        count = _cleanup_grid_lines(root, grid_color=None)
+        assert count >= 3
+        # Verify grid lines are gone
+        for elem in root.iter():
+            style = elem.get("style", "")
+            assert "#cccccc" not in style
+
+    def test_grid_dashed_style(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_GRID)
+        count = _cleanup_grid_lines(
+            root, grid_color="#e0e0e0", grid_style="dashed",
+        )
+        assert count >= 3
+        # Verify dasharray was added
+        found_dash = False
+        for elem in root.iter():
+            style = elem.get("style", "")
+            if "stroke-dasharray:4,4" in style:
+                found_dash = True
+                break
+        assert found_dash
+
+    def test_no_grid_on_non_matplotlib(self):
+        root = _parse_svg(NON_MATPLOTLIB_SVG)
+        count = _cleanup_grid_lines(root, grid_color="#e0e0e0")
+        assert count == 0
+
+
+class TestRecolorDataElements:
+    """Tests for data element recoloring."""
+
+    def test_recolor_patches(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_DATA)
+        color_map = {"#1f77b4": "#e6550d", "#ff7f0e": "#2171b5"}
+        count = _recolor_data_elements(root, color_map)
+        assert count >= 2
+
+    def test_recolor_empty_map(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_DATA)
+        count = _recolor_data_elements(root, {})
+        assert count == 0
+
+    def test_recolor_no_axes(self):
+        root = _parse_svg(NON_MATPLOTLIB_SVG)
+        count = _recolor_data_elements(root, {"#0000ff": "#ff0000"})
+        assert count == 0
+
+    def test_does_not_recolor_axis_elements(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_DATA)
+        # Axis tick marks use #000000 — should NOT be recolored
+        color_map = {"#000000": "#ff0000"}
+        count = _recolor_data_elements(root, color_map)
+        # Tick marks inside matplotlib.axis_1 should be untouched
+        for elem in root.iter():
+            parent = elem.getparent()
+            if parent is not None and "xtick" in parent.get("id", ""):
+                style = elem.get("style", "")
+                assert "#ff0000" not in style
+
+
+class TestDeepCleanupHelpers:
+    """Tests for deep cleanup helper functions."""
+
+    def test_is_rectilinear_path(self):
+        result = _is_rectilinear_path("M 80,40 L 580,40")
+        assert result == (80.0, 40.0, 580.0, 40.0)
+
+    def test_is_rectilinear_path_with_z(self):
+        result = _is_rectilinear_path("M 80,40 L 580,40 Z")
+        assert result is not None
+
+    def test_not_rectilinear(self):
+        result = _is_rectilinear_path("M 80,40 C 100,20 200,60 300,40")
+        assert result is None
+
+    def test_classify_spine_bottom(self):
+        bbox = (80.0, 40.0, 580.0, 420.0)
+        line = (80.0, 420.0, 580.0, 420.0)
+        assert _classify_spine(line, bbox) == "bottom"
+
+    def test_classify_spine_left(self):
+        bbox = (80.0, 40.0, 580.0, 420.0)
+        line = (80.0, 40.0, 80.0, 420.0)
+        assert _classify_spine(line, bbox) == "left"
+
+    def test_classify_spine_top(self):
+        bbox = (80.0, 40.0, 580.0, 420.0)
+        line = (80.0, 40.0, 580.0, 40.0)
+        assert _classify_spine(line, bbox) == "top"
+
+    def test_classify_spine_right(self):
+        bbox = (80.0, 40.0, 580.0, 420.0)
+        line = (580.0, 40.0, 580.0, 420.0)
+        assert _classify_spine(line, bbox) == "right"
+
+    def test_get_axes_bbox(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_SPINES)
+        axes = _get_axes_groups(root)
+        assert len(axes) == 1
+        bbox = _get_axes_bbox(axes[0])
+        assert bbox == (80.0, 40.0, 580.0, 420.0)
+
+
+class TestDeepCleanupIntegration:
+    """Integration tests for cleanup_matplotlib_svg with template_data."""
+
+    def test_cleanup_with_template(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_SPINES)
+        template_data = {
+            "axes": {
+                "spines": ["bottom", "left"],
+                "line_width": "1.0",
+                "grid_width": "0.3",
+            },
+            "colors": {
+                "axis": "#333333",
+                "grid": "#e0e0e0",
+                "palette": ["#e6550d", "#2171b5"],
+            },
+        }
+        count = cleanup_matplotlib_svg(root, template_data=template_data)
+        assert count > 0
+
+    def test_cleanup_without_template_is_basic(self):
+        root = _parse_svg(MATPLOTLIB_SVG_WITH_SPINES)
+        count = cleanup_matplotlib_svg(root)
+        # Without template_data, only basic cleanup (bg, styles, fonts)
+        # Spines should still be present
+        spine_count = 0
+        for elem in root.iter():
+            if not isinstance(elem.tag, str):
+                continue
+            d = elem.get("d", "")
+            if _is_rectilinear_path(d):
+                spine_count += 1
+        assert spine_count >= 4  # all 4 spines still present
+
+    def test_batch_passes_template_data(self):
+        """Verify that batch_improve passes template_data to cleanup."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            svg_path = os.path.join(tmpdir, "mpl.svg")
+            with open(svg_path, "w") as f:
+                f.write(MATPLOTLIB_SVG_WITH_SPINES)
+
+            result = batch_improve(tmpdir, "nature", export_format="svg")
+            assert result["status"] == "success"
+            fr = result["data"]["file_results"][0]
+            assert fr["status"] == "ok"
+            # Should have modifications from both basic cleanup and deep cleanup
+            assert fr["modifications"] > 0

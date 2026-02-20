@@ -105,7 +105,7 @@ Usa D-Bus directamente (`org.gtk.Application.Open`), no pasa por la extensión.
 
 ### Templates de publicación
 ```
-list-templates                         → listar templates disponibles
+list-templates                         → listar templates disponibles (built-in + custom)
 get-template name=nature               → info detallada del template
 apply-template name=nature             → aplicar estilo Nature al documento actual
 apply-template name=science            → estilo Science/AAAS
@@ -114,6 +114,16 @@ apply-template name=ieee               → estilo IEEE (grayscale-safe)
 apply-template name=colorblind_safe    → paleta Wong 2011 colorblind-safe
 ```
 Opciones: `apply_fonts=true/false`, `apply_colors=true/false`, `color_map='{"#old":"#new"}'`
+
+### Custom templates
+```
+save-template name=my_style palette=#e6550d,#2171b5,#31a354 description='My custom style'
+save-template name=my_style fonts={...} colors={...} axes={...}     → full JSON config
+save-template name=nature force=true palette=#ff0000,#0000ff        → override built-in (requires force)
+delete-template name=my_style                                       → eliminar custom (no permite borrar built-in)
+```
+Custom templates se guardan en `~/.config/inkscape/extensions/inkmcp/user_templates.json` (separado de built-in).
+`capture_template_from_svg()` permite capturar fonts/colores/ejes de un SVG existente via código.
 
 ### Batch processing (no requiere Inkscape GUI)
 ```
@@ -125,6 +135,11 @@ batch-improve path=/dir/ template=nature incremental=true          → solo proc
 batch-improve path=/dir/ template=nature report=true format=svg    → generar HTML report before/after
 ```
 Opciones: `format=pdf/svg/png`, `cleanup_matplotlib=true/false` (auto por defecto), `auto_color`, `incremental`, `report`
+
+**Deep matplotlib cleanup** (automático cuando se usa un template):
+- **Spine removal**: elimina bordes top/right, mantiene bottom/left (Tufte style), aplica color/width del template
+- **Grid restyling**: re-estiliza grid lines (color, width, dashed/dotted) según el template
+- **Data recoloring**: mapea colores de datos (barras, líneas, patches) a la paleta del template via deltaE CIE76
 
 ### Batch analysis (dry-run)
 ```
@@ -320,16 +335,16 @@ python3 ~/proyectos/inkmcp/inkscape_exec.py 'print("hello from inkscape")'
 - [x] Export PDF directo — `export-document-image format=pdf output_path=/tmp/out.pdf` (también eps, ps)
 - [x] Tool `open-file` — abre SVG/PDF en Inkscape via D-Bus (`org.gtk.Application.Open`)
 - [x] Template system — 5 estilos de publicación: nature, science, elsevier, ieee, colorblind_safe
-- [x] Tests automatizados — 191 tests (parser, format_response, templates, batch, color_utils)
+- [x] Tests automatizados — 241 tests (parser, format_response, templates, batch, color_utils, deep cleanup)
 - [x] Batch processing — `batch-improve` procesa múltiples SVG/PDF con templates sin D-Bus
 - [x] Matplotlib SVG — detección automática + cleanup (fondo, styles, fonts DejaVu)
 - [x] Dry-run / Analysis — `batch-analyze` analiza sin modificar (elementos, colores, matplotlib)
 - [x] Auto color mapping — extrae colores dominantes, mapea a paleta via deltaE CIE76 LAB
 - [x] HTML Report — `batch_report.html` self-contained con before/after SVG
 - [x] Watch mode — `batch-watch` con polling incremental + manifest
+- [x] Templates custom — save/delete/capture templates de usuario en `user_templates.json`
+- [x] Deep matplotlib cleanup — spine removal (Tufte), grid restyling, data recoloring automático
 
 ### Pendientes
-- [ ] Templates custom: permitir al usuario crear/guardar sus propios templates
 - [ ] Integración con el skill `/inkscape` para usar templates + batch automáticamente
-- [ ] Cleanup matplotlib más profundo: normalizar ejes, detectar barras/líneas para recolorear
 - [ ] Abrir report en browser automáticamente (`xdg-open batch_report.html`)
